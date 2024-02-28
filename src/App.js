@@ -110,6 +110,8 @@ const App = () => {
   const resetButtons = (e) => {
     setActuatorNumbers(8);
     setPlacedActuators([]);
+    setGrid(Array.from({ length: 4}, () => Array(5).fill(null)));
+
     
   }
 
