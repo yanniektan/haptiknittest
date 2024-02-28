@@ -22,10 +22,12 @@ const App = () => {
   const [actuatorNumbers, setActuatorNumbers] = useState(8); 
   const [placedActuators, setPlacedActuators] = useState([]);
   const [pressures, setPressures] = useState(Array(8).fill(''));
+  // EDITABLE: You can always add more grid space here if needed. Just change the length (4) or number of cells per row (5)
   const [grid, setGrid] = useState(Array.from({ length: 4}, () => Array(5).fill(null)));
 
 
-  // Convert actionNumbers object from your p5.js sketch to an array for easy mapping
+  // Convert actionNumbers object sketch to an array for easy mapping. 
+  // EDITABLE: You can always add more actuators here if needed.
   const actionNumbers = [
     { name: "one", value: 1 },
     { name: "two", value: 2 },
@@ -49,40 +51,12 @@ const App = () => {
     }
   };
 
-  // const handleDragStart = (event, actuator) => {
-  //   console.log(event);
-  //   event.dataTransfer.setData('text/plain', JSON.stringify(actuator));
-  //   event.dataTransfer.effectAllowed = 'move';
-  // };
   const handleDragStart = (event, actuator, source = 'basket', rowIndex = null, colIndex = null) => {
     const dragData = JSON.stringify({ actuator, source, rowIndex, colIndex });
     event.dataTransfer.setData('text/plain', dragData);
     event.dataTransfer.effectAllowed = 'move';
   };
 
-  // const handleDrop = (event, rowIndex, colIndex) => {
-  //   event.preventDefault();
-  //   const actuator = JSON.parse(event.dataTransfer.getData('text'));
-  
-  //   if (!placedActuators.find(a => a.id === actuator.id)) {
-  //     // Place the actuator
-  //     // setPlacedActuators(prev => {
-  //     //   const newPlaced = [...prev, actuator];
-  //     //   // setActuatorNumbers(newPlaced.length); // Update the number of actuators based on the new array's length
-  //     //   return newPlaced;
-  //     // });
-  //     setPlacedActuators(prev => [...prev, actuator]);
-
-  //     // Update the grid with the dropped actuator
-  //     const newGrid = [...grid];
-  //     newGrid[rowIndex] = [...newGrid[rowIndex]]; // Make a copy of the row to ensure immutability
-  //     newGrid[rowIndex][colIndex] = actuator;
-  //     setGrid(newGrid);
-  //   }
-  //   // const charName = determineCharNameBasedOnActuatorOrPosition(actuator, rowIndex, colIndex);
-  //   // const value = determineValueBasedOnActuator(actuator); // Define how the actuator determines the value
-  //   // writeToCharacteristic(charName, value);
-  // };
   const handleDrop = (event, dropRowIndex, dropColIndex) => {
     event.preventDefault();
     const { actuator, source, rowIndex: dragRowIndex, colIndex: dragColIndex } = JSON.parse(event.dataTransfer.getData('text'));
@@ -111,16 +85,7 @@ const App = () => {
     setActuatorNumbers(8);
     setPlacedActuators([]);
     setGrid(Array.from({ length: 4}, () => Array(5).fill(null)));
-
-    
   }
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    console.log('Submitted Pressures:', pressures.slice(0, actuatorNumbers));
-
-    // SEND DATA TO ARDUINO
-  };
 
   const connectToDevice = async () => {
     try {
@@ -176,12 +141,7 @@ const App = () => {
     writeToCharacteristic('command', actionValue);
   };
 
-  const handleGridActuatorClick = (actionValue) => {
-    writeToCharacteristic('command', actionValue);
-  };
-
   // Handles change in input fields for KPA
-
   const handleChange = (index, value) => {
     const numericValue = Number(value);
     if (numericValue > 255) {
@@ -195,8 +155,25 @@ const App = () => {
     }
   };
 
+  const handleSubmit = (event) => {
+    event.preventDefault(); // This stops the default form submission behavior
+
+    console.log('Submitted Pressures:', pressures.slice(0, actuatorNumbers));
+
+    // Loop through each pressure value and send it to the Arduino
+    for (let i = 1; i < actuatorNumbers; i++) {
+      // Ensure the pressure is a valid number before sending
+      const pressureValue = parseInt(pressures[i]);
+
+      if (!isNaN(pressureValue)) {
+        // Assuming 'command' characteristic is used for sending pressure values
+        // Adjust 'command' and the characteristic UUID as necessary for your setup
+        writeToCharacteristic('command', pressureValue);
+      }
+    }
+};
+
   // PART 2: CSS
-  
   const dropdown = {
     marginBottom: '60px',
     marginLeft: '25px',
@@ -231,6 +208,7 @@ const App = () => {
     lineHeight: '1', // Ensures the text is centered if it wraps
   }
 
+  // Part 3: The GUI display.
   return (
     <div  >
       <div>
@@ -293,22 +271,6 @@ const App = () => {
       <div style={{ display: 'flex', gap: '20px' }}>
 
       <div className="gridGrey">
-        
-      {/* {grid.map((row, rowIndex) =>
-          row.map((cell, colIndex) => (
-            <div
-              key={`${rowIndex}-${colIndex}`}
-              onDrop={(event) => handleDrop(event, rowIndex, colIndex)}
-              onDragOver={(event) => handleDragOver(event)}
-              className="cell"
-            >
-              {cell ? <div className="actuatorsButton" key={cell} 
-              onClick={() => handleActionButtonClick(cell)}>
-              {cell.label}</div> : <p className="textStyle"> EMPTY </p>}
-            </div>
-          ))
-        )}
- */}
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
             <div
@@ -322,8 +284,7 @@ const App = () => {
                   draggable="true"
                   onDragStart={(event) => handleDragStart(event, cell, 'grid', rowIndex, colIndex)}
                   onClick={() => handleActionButtonClick(cell.id)}
-                  className="actuatorsButton"
-                >
+                  className="actuatorsButton">
                   {cell.label}
                 </button>
               ) : <p className="textStyle"> EMPTY </p>}
@@ -334,13 +295,13 @@ const App = () => {
         </div> 
 
         {/* Set Pressure */}
-        <div className="pressureCell">
+        {/* <div className="pressureCell">
           <h2>Set Pressure:</h2>
           <form onSubmit={handleSubmit}>
             {Array.from({ length: actuatorNumbers }).map((_, index) => (
               <div key={index}>
                 <label style={{display:'flex', gap: '20px', fontSize: '15px', padding: '5px'}}>
-                  Actuator {index + 1}:
+                  Actuator{index + 1}:
                   <input
                     className="inputStyle"
                     type="number"
@@ -348,11 +309,32 @@ const App = () => {
                     onChange={(e) => handleChange(index, e.target.value)}
                     placeholder="Pressure value (kPa)"
                   />
+                  <button type="submit" className='buttonStyleFour' onSubmit={(e) => handleSubmit(e.target.value, pressures[index])}>Submit</button>    
                 </label>
+
               </div>
             ))}
-            <button type="submit" className='buttonStyleFour' onSubmit={() => handleSubmit()}>Submit</button>    
           </form>
+        </div> */}
+        <div className="pressureCell">
+          <h2>Set Pressure:</h2>
+          <form onSubmit={handleSubmit}>
+          {Array.from({ length: actuatorNumbers }).map((_, index) => (
+            <div key={index}>
+              <label style={{display:'flex', gap: '20px', fontSize: '15px', padding: '5px'}}>
+              {index + 1}:
+                <input
+                  className='inputStyle'
+                  type="number"
+                  value={pressures[index]}
+                  onChange={(e) => handleChange(index, e.target.value)}
+                  placeholder="Pressure value"
+                /> kPa
+              </label>
+            </div>
+          ))}
+          <button type="submit">Submit</button>    
+        </form>
         </div>
       </div>
       <img className='textStyle4' src={logo} alt="Logo" />
