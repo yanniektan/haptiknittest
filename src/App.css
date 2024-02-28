@@ -1,10 +1,11 @@
 /* Actuators Button Style */
 .actuatorsButton {
-  margin: 25px;
+  margin-left: 2%;
   padding: 15px;
+  width: 50px;
   border: none;
   display: inline-block;
-  border-radius: 50%;
+  border-radius: 20%;
   background-color: crimson;
   color: white;
   cursor: pointer;
@@ -15,9 +16,24 @@
   line-height: 1;
 }
 
+
+.firstcontainer {
+  display: flex;
+  justify-content: flex-start; /* Aligns children to the right */
+  width: 100%; /* Full width of the container */
+}
+
+.container {
+  display: flex;
+  justify-content: flex-end; /* Aligns children to the right */
+  width: 90%; /* Full width of the container */
+}
+
 /* Actuator Style */
 .actuator {
   padding: 15px;
+  margin-left: 2%;
+
   border: none;
   display: inline-block;
   border-radius: 50%;
@@ -34,40 +50,124 @@
 /* Grid Grey Style */
 .gridGrey {
   display: grid;
-  grid-template-columns: repeat(4, 100px);
-  grid-gap: 40px;
-  margin: 35px;
-  justify-content: center;
+  grid-template-columns: repeat(5, 200px);
+  margin-left: 2%;
   padding: 20px;
-  border: 5px solid #ccc;
+  max-width: 100%;
   border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  background-color: #f0f0f0;
+  box-shadow: 0 4px px rgba(0, 0, 0, 0.1);
+  background-color: #f9f9f9;
+}
+
+.basket {
+  padding: 30px;
+  width: 40%;
+  margin-left: 2%;
+  margin-bottom: 1%;
+  background-color: #f9f9f9; /* Light background color */
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Optional: adds shadow for depth */
+  font-size: 20px; /* Adjust based on your preference */
+  font-weight: bold;
+  text-align: center;
+  color: black;
+  line-height: 1;
+}
+
+/* Grid Cell Style */
+.cell {
+  padding: 10%;
+  margin: 5%;
+  border: none;
+  margin-left: 2%;
+  width: 90px;
+  height: 50px;
+  border-radius: 10%;
+  background-color: #f9f9f9; /* Light background color */
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Optional: adds shadow for depth */
+  font-size: 20px; /* Adjust based on your preference */
+  font-weight: bold;
+  text-align: center;
+  color: black;
+  line-height: 1;
 }
 
 /* Text Style */
 .textStyle {
   height: 40px;
   color: black;
-  margin: 25px;
+  margin-left: 2%;
+}
+
+
+/* Text Style 4*/
+.textStyle4 {
+  color: black;
+  height: 100px;
+  margin-left: 2%;
+  font-weight: 100;
+}
+
+
+.pressureCell {
+  background-color: #f9f9f9; /* Light background color */
+  color: white;
+  cursor: pointer;
+  padding: 1%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Optional: adds shadow for depth */
+  font-size: 20px; /* Adjust based on your preference */
+  font-weight: bold;
+  color: black;
+  line-height: 1;
+}
+.form {
+  display: flex;
+  flex-direction: column; /* Align items vertically */
+  align-items: flex-start;
+  color: black;
+  font-weight: 500;
+  font-size: 20px;
+  width: 400px;
+  margin-bottom: 10%;
+  padding: 20px;
+  border-radius: 15px; /* Rounded corners for the cell-like appearance */
+  background-color: #f9f9f9; /* Light background color */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Optional: adds shadow for depth */
+}
+/* Text Style */
+.textStyle2 {
+  height: 50px;
+  color: black;
+  font-weight: 300;
+  margin-left: 2%;
+  margin-right: 75%;
+  margin-bottom: 3%;
+  
 }
 
 /* Input Style */
 .inputStyle {
-  margin-left: 10px;
+  margin-left: 2%;
   margin-bottom: 5px;
+  border-radius: 5%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Optional: adds shadow for depth */
 }
 
 /* Image Logo Style */
-.imagelogo {
-  height: 50px;
-  margin: 15px;
+.imageLogo {
+  height: 150px;
+  margin-left: 25%;
+  display: flex;
 }
 
 /* Dropdown Style */
 .dropdown {
-  margin-bottom: 60px;
-  margin-left: 25px;
+  margin-left: 2%;
   font-size: 40px;
 }
 
@@ -75,10 +175,9 @@
 .dropdowntext {
   padding: 15px;
   border: none;
-  margin-top: 15px;
-  margin-bottom: 25px;
   display: inline-block;
   background-color: grey;
+  border-radius: 10%;
   color: white;
   cursor: pointer;
   font-size: 16px;
@@ -89,9 +188,9 @@
 
 /* Button Style */
 .buttonStyle {
-  margin: 25px;
   padding: 15px;
   border: none;
+  margin-left: 2%;
   display: inline-block;
   border-radius: 50%;
   background-color: crimson;
@@ -106,7 +205,7 @@
 
 /* Button Style Two */
 .buttonStyleTwo {
-  margin: 25px;
+  margin-left: 2%;
   padding: 15px;
   display: inline-block;
   color: white;
@@ -116,4 +215,20 @@
   font-weight: bold;
   text-align: center;
   line-height: 1;
+}
+
+.buttonStyleFour {
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 10px;
+  color: white;
+  background-color: blue;
+  border-color: whitesmoke;
+  padding: 10px;
+  width: 55%;
+}
+
+.imageLogo {
+  height: 100px;
+  margin: 15px;
 }

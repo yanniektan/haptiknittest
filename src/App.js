@@ -22,7 +22,7 @@ const App = () => {
   const [actuatorNumbers, setActuatorNumbers] = useState(8); 
   const [placedActuators, setPlacedActuators] = useState([]);
   const [pressures, setPressures] = useState(Array(8).fill(''));
-  const [grid, setGrid] = useState(Array.from({ length: 6 }, () => Array(4).fill(null)));
+  const [grid, setGrid] = useState(Array.from({ length: 4}, () => Array(5).fill(null)));
 
 
   // Convert actionNumbers object from your p5.js sketch to an array for easy mapping
@@ -41,35 +41,77 @@ const App = () => {
 
   // Adjust actuators available for dragging based on dropdown selection
   const handleActuatorNumberChange = (number) => {
-    setActuatorNumbers(number);
-    setPlacedActuators([]);
-  };
-
-  const handleDragStart = (event, actuator) => {
-    console.log(event);
-    event.dataTransfer.setData('text/plain', JSON.stringify(actuator));
-    event.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDrop = (event, rowIndex, colIndex) => {
-    console.log(event);
-    event.preventDefault();
-    const actuator = JSON.parse(event.dataTransfer.getData('text'));
-
-    if (!placedActuators.find(a => a.id === actuator.id)) {
-      // Place the actuator
-      setPlacedActuators(prev => [...prev, actuator]);
-
-      // Update the grid with the dropped actuator
-      const newGrid = [...grid];
-      newGrid[rowIndex][colIndex] = actuator;
-      setGrid(newGrid);
+    if (actuatorNumbers != 8) {
+      alert("You already have selected a set number of actuators. Click reset to reset the entire system.");
+    } else {
+      setActuatorNumbers(number);
+      setPlacedActuators([]);
     }
   };
 
+  // const handleDragStart = (event, actuator) => {
+  //   console.log(event);
+  //   event.dataTransfer.setData('text/plain', JSON.stringify(actuator));
+  //   event.dataTransfer.effectAllowed = 'move';
+  // };
+  const handleDragStart = (event, actuator, source = 'basket', rowIndex = null, colIndex = null) => {
+    const dragData = JSON.stringify({ actuator, source, rowIndex, colIndex });
+    event.dataTransfer.setData('text/plain', dragData);
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
+  // const handleDrop = (event, rowIndex, colIndex) => {
+  //   event.preventDefault();
+  //   const actuator = JSON.parse(event.dataTransfer.getData('text'));
+  
+  //   if (!placedActuators.find(a => a.id === actuator.id)) {
+  //     // Place the actuator
+  //     // setPlacedActuators(prev => {
+  //     //   const newPlaced = [...prev, actuator];
+  //     //   // setActuatorNumbers(newPlaced.length); // Update the number of actuators based on the new array's length
+  //     //   return newPlaced;
+  //     // });
+  //     setPlacedActuators(prev => [...prev, actuator]);
+
+  //     // Update the grid with the dropped actuator
+  //     const newGrid = [...grid];
+  //     newGrid[rowIndex] = [...newGrid[rowIndex]]; // Make a copy of the row to ensure immutability
+  //     newGrid[rowIndex][colIndex] = actuator;
+  //     setGrid(newGrid);
+  //   }
+  //   // const charName = determineCharNameBasedOnActuatorOrPosition(actuator, rowIndex, colIndex);
+  //   // const value = determineValueBasedOnActuator(actuator); // Define how the actuator determines the value
+  //   // writeToCharacteristic(charName, value);
+  // };
+  const handleDrop = (event, dropRowIndex, dropColIndex) => {
+    event.preventDefault();
+    const { actuator, source, rowIndex: dragRowIndex, colIndex: dragColIndex } = JSON.parse(event.dataTransfer.getData('text'));
+    
+    if (source === 'grid' && dragRowIndex !== null && dragColIndex !== null) {
+      // Handle rearranging within the grid
+      const newGrid = [...grid];
+      // Swap or move actuator
+      const temp = newGrid[dropRowIndex][dropColIndex];
+      newGrid[dropRowIndex][dropColIndex] = newGrid[dragRowIndex][dragColIndex];
+      newGrid[dragRowIndex][dragColIndex] = temp;
+      setGrid(newGrid);
+    } else if (!placedActuators.find(a => a.id === actuator.id)) {
+      // Handle dropping a new actuator into the grid
+      setPlacedActuators(prev => [...prev, actuator]);
+      const newGrid = [...grid];
+      newGrid[dropRowIndex][dropColIndex] = actuator;
+      setGrid(newGrid);
+    }
+  };
   const handleDragOver = (e) => {
     e.preventDefault();
   };
+
+  const resetButtons = (e) => {
+    setActuatorNumbers(8);
+    setPlacedActuators([]);
+    
+  }
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -105,13 +147,23 @@ const App = () => {
     }
   };
 
+  const disconnectToDevice = async () => {
+    if (device && device.gatt.connected) {
+      device.gatt.disconnect();
+      setIsConnected(false); // Assuming you have a state setter for connection status
+      console.log('Disconnected from the device:', device.name);
+    } else {
+      console.log('No device is connected or the device is already disconnected.');
+    }
+  };
+
   const writeToCharacteristic = async (charName, value) => {
     if (!characteristics[charName]) {
       console.log(`Characteristic ${charName} not found!`);
       return;
     }
     try {
-      await characteristics[charName].writeValue(new Uint8Array([value]));
+      await characteristics[charName].writeValue(new Uint8Array([value + 1]));
       console.log(`Sent value ${value} to characteristic ${charName}`);
     } catch (error) {
       console.error(`Error writing to characteristic ${charName}:`, error);
@@ -121,7 +173,6 @@ const App = () => {
   const handleActionButtonClick = (actionValue) => {
     writeToCharacteristic('command', actionValue);
   };
-
 
   const handleGridActuatorClick = (actionValue) => {
     writeToCharacteristic('command', actionValue);
@@ -144,71 +195,11 @@ const App = () => {
 
   // PART 2: CSS
   
-  const gridCell = {
-    padding: '25px', // Adjust as needed to ensure the button is circular
-    border: 'none',
-    margin: '25px',
-    width: '90px',
-    height: '50px',
-    borderRadius: '10%',
-    backgroundColor: 'crimson',
-    color: 'white',
-    cursor: 'pointer',
-    userSelect: 'none',
-    fontSize: '20px', // Adjust based on your preference
-    fontWeight: 'bold',
-    textAlign: 'center',
-    lineHeight: '1',
-  }
-  const actuatorButton = {
-    padding: '25px', // Adjust as needed to ensure the button is circular
-    border: 'none',
-    margin: '25px',
-    width: '90px',
-    height: '50px',
-    borderRadius: '10%',
-    backgroundColor: 'crimson',
-    color: 'white',
-    cursor: 'pointer',
-    userSelect: 'none',
-    fontSize: '20px', // Adjust based on your preference
-    fontWeight: 'bold',
-    textAlign: 'center',
-    lineHeight: '1',
-  }
-  const gridGrey = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 190px)',
-    gridGap: '70px',
-    margin: '55px',
-    color: 'white',
-    fontWeight: 'bold',
-    justifyContent: 'center',
-    padding: '20px',
-    border: '5px solid #ccc',
-    borderRadius: '15px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-    backgroundColor: 'grey',
-  };
-  const textStyle = {
-    height: '40px',
-    color: 'black',
-    margin: '25px',
-  };
-  const inputStyle = {
-    marginLeft: '10px',
-    marginBottom: '5px',
-  }
-  const imagelogo = {
-    height: '100px',
-    margin: '15px',
-  };
   const dropdown = {
     marginBottom: '60px',
     marginLeft: '25px',
     fontSize: '40px',
   };
-
   const dropdowntext = {
     padding: '15px', // Adjust as needed to ensure the button is circular
     border: 'none',
@@ -223,41 +214,29 @@ const App = () => {
     textAlign: 'center',
     lineHeight: '1', // Ensures the text is centered if it wraps
   }
-  const buttonStyle = {
-    margin: 25,
-    padding: '15px', // Adjust as needed to ensure the button is circular
-    border: 'none',
-    display: 'inline-block',
-    borderRadius: '50%',
-    backgroundColor: 'crimson',
-    color: 'white',
-    cursor: 'pointer',
-    userSelect: 'none',
-    fontSize: '16px', // Adjust based on your preference
-    fontWeight: 'bold',
-    textAlign: 'center',
-    lineHeight: '1', // Ensures the text is centered if it wraps
-  }
   const buttonStyleTwo = {
-    margin: 25,
-    padding: '15px', // Adjust as needed to ensure the button is circular
+    margin: "2%",
+    padding: '25px', // Adjust as needed to ensure the button is circular
     display: 'inline-block',
     color: 'white',
-    cursor: 'pointer',
-    userSelect: 'none',
-    fontSize: '16px', // Adjust based on your preference
+    fontSize: '20px',
     fontWeight: 'bold',
-    textAlign: 'center',
+    borderRadius: '10px',
+    color: 'white',
+    backgroundColor: 'blue',
+    borderColor: 'whitesmoke',
+    padding: '20px',
     lineHeight: '1', // Ensures the text is centered if it wraps
   }
 
   return (
-    <div>
+    <div  >
       <div>
-        <h1 style={textStyle}>A Knit Haptic Pneumatic Sleeve</h1>
+        <h1 className="textStyle">A Knit Haptic Pneumatic Sleeve</h1>
+        <h4 className="textStyle2">This GUI system supports the PortFlow8 developed by Ian Scholler. The HaptiKnit must be connected to the Arduino system via Bluetooth. The main functionality of this GUI is to support the testing of multiple actuators. To test other pneumatic systems, simply readjust the UI to better match the system configuration of your device. </h4>
+        <div className="textStyle3"></div>
       </div>
-      {/* <p style={textStyle}>Connected Device: {deviceName}</p> */}
-      
+
       {/* Connect Bluetooth */}
 
       <button
@@ -268,29 +247,31 @@ const App = () => {
         {isConnected ? 'Connected' : 'Connect Bluetooth'}
       </button>
 
-      {/* Disconnect Bluetooth
+      {/* Disconnect Bluetooth */}
       <button
         style={{ ...buttonStyleTwo, backgroundColor: isConnected ? 'blue' : 'gray' }}
         onClick={disconnectToDevice}
         disabled={!isConnected}
-        > Disconnect Bluetooth </button> */}
+        > Disconnect Bluetooth 
+      </button>
 
-      <Dropdown style={dropdown}>
-        <Dropdown.Toggle variant="success" id="dropdown-basic">
-          Select Number of Actuators
-        </Dropdown.Toggle>
-        <Dropdown.Menu style={dropdown}>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map(number => (
-            <Dropdown.Item key={number} style={dropdowntext} onClick={() => handleActuatorNumberChange(number)}>
-              {number}
-            </Dropdown.Item>
-          ))}
-        </Dropdown.Menu>
-      </Dropdown> 
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px' }}>
 
-      <h3 style={textStyle}> You have {actuatorNumbers} actuators selected. </h3>      
-        
-      <div >
+      <h3 className='textStyle'>Select Number of Actuators: You have {actuatorNumbers} actuators selected. </h3>     
+      {[1, 2, 3, 4, 5, 6, 7, 8].map(number => (
+        <button key={number} className="dropdowntext" 
+        onClick={() => handleActuatorNumberChange(number)} //Maybe not necessary.
+        >
+          {number}
+        </button>
+      ))}
+      <button className="dropdowntext" onClick={() => resetButtons()}> RESET </button>
+      </div>
+
+
+      {/* Show Grey Grid*/}
+      <h3 className="textStyle2">Drag and Drop Actuators into the Grid.</h3>
+      <div className='basket'>
         {initialActuators
           .slice(0, actuatorNumbers) // Take only up to the number of actuators specified
           .filter(actuator => !placedActuators.find(a => a.id === actuator.id))
@@ -300,52 +281,80 @@ const App = () => {
               draggable="true"
               onDragStart={(event) => handleDragStart(event, actuator)}
               onClick={() => handleActionButtonClick(actuator.id)}
-              style={actuatorButton}
+              className="actuatorsButton"
             >
               {actuator.label}
             </button>
           ))}
       </div>
 
-      {/* Show Grey Grid*/}
-      <div style={gridGrey}>
+      <div style={{ display: 'flex', gap: '20px' }}>
+
+      <div className="gridGrey">
+        
+      {/* {grid.map((row, rowIndex) =>
+          row.map((cell, colIndex) => (
+            <div
+              key={`${rowIndex}-${colIndex}`}
+              onDrop={(event) => handleDrop(event, rowIndex, colIndex)}
+              onDragOver={(event) => handleDragOver(event)}
+              className="cell"
+            >
+              {cell ? <div className="actuatorsButton" key={cell} 
+              onClick={() => handleActionButtonClick(cell)}>
+              {cell.label}</div> : <p className="textStyle"> EMPTY </p>}
+            </div>
+          ))
+        )}
+ */}
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
               onDrop={(event) => handleDrop(event, rowIndex, colIndex)}
               onDragOver={(event) => handleDragOver(event)}
-              style={cell}
+              className="cell"
             >
-              {cell ? <div style={actuatorButton}>
-              {cell.label}</div> : <p> DROP HERE </p>}
+              {cell ? (
+                <button
+                  draggable="true"
+                  onDragStart={(event) => handleDragStart(event, cell, 'grid', rowIndex, colIndex)}
+                  onClick={() => handleActionButtonClick(cell.id)}
+                  className="actuatorsButton"
+                >
+                  {cell.label}
+                </button>
+              ) : <p className="textStyle"> EMPTY </p>}
             </div>
           ))
         )}
-      </div> 
 
-      {/* Set Pressure */}
-      <div >
-        <form onSubmit={handleSubmit}>
-          {Array.from({ length: actuatorNumbers }).map((_, index) => (
-            <div key={index}>
-              <label style={textStyle}>
-                Actuator {index + 1} - set pressure:
-                <input
-                  style={inputStyle}
-                  type="number"
-                  value={pressures[index]}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  placeholder="Pressure value"
-                /> kPa
-              </label>
-            </div>
-          ))}
-          <button type="submit">Submit</button>    
-        </form>
+        </div> 
+
+        {/* Set Pressure */}
+        <div className="pressureCell">
+          <h2>Set Pressure:</h2>
+          <form onSubmit={handleSubmit}>
+            {Array.from({ length: actuatorNumbers }).map((_, index) => (
+              <div key={index}>
+                <label style={{display:'flex', gap: '20px', fontSize: '15px', padding: '5px'}}>
+                  Actuator {index + 1}:
+                  <input
+                    className="inputStyle"
+                    type="number"
+                    value={pressures[index]}
+                    onChange={(e) => handleChange(index, e.target.value)}
+                    placeholder="Pressure value (kPa)"
+                  />
+                </label>
+              </div>
+            ))}
+            <button type="submit" className='buttonStyleFour' onSubmit={() => handleSubmit()}>Submit</button>    
+          </form>
+        </div>
       </div>
-
-      <img style={imagelogo} src={logo} alt="Logo" />;
+      <img className='textStyle4' src={logo} alt="Logo" />
+      <h4 className="textStyle4">Developed by Yannie Tan.</h4>
 
     </div>
   );
