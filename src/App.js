@@ -1,25 +1,35 @@
+/* GUI for PortFlow8: February 28, 2024
+Editor and Developer: Yannie Tan
+Description: This GUI system supports the PortFlow8 developed by Ian Scholler. 
+The HaptiKnit must be connected to the Arduino system via Bluetooth. 
+The main functionality of this GUI is to support the testing of multiple actuators. 
+To test other pneumatic systems, simply readjust the UI to better match the system configuration of your device. */
+
 import React, {useState, useEffect} from 'react';
 import './App.css';
 import logo from './charm.jpg';
 import Dropdown from 'react-bootstrap/Dropdown';
 
 // Constants for service and characteristic UUIDs
+// EDITABLE: You can always change your microcontroller given the specified UUID in your Arduino and device.
 const SERVICE_UUID = "00002a6a-0000-1000-8000-00805f9b34fb";
 const CHARACTERISTICS_UUID = {
   command: "00002a6b-0000-1000-8000-00805f9b34fb",
+  battery: "00002a6f-0000-1000-8000-00805f9b34fb",
+
+  // EXTRAS
   // min_pressure: "00002a6c-0000-1000-8000-00805f9b34fb",
   // max_pressure: "00002a6d-0000-1000-8000-00805f9b34fb",
   // pressure: "00002a6e-0000-1000-8000-00805f9b34fb",
-  battery: "00002a6f-0000-1000-8000-00805f9b34fb"
 };
 const initialActuators = Array.from({ length: 8 }, (_, i) => ({ id: i, label: `${i + 1}` }));
-
+let chrPressureValue;
 
 const App = () => {
   const [device, setDevice] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [characteristics, setCharacteristics] = useState({});
-  const [actuatorNumbers, setActuatorNumbers] = useState(8); 
+  const [actuatorNumbers, setActuatorNumbers] = useState(0); 
   const [placedActuators, setPlacedActuators] = useState([]);
   const [pressures, setPressures] = useState(Array(8).fill(''));
   // EDITABLE: You can always add more grid space here if needed. Just change the length (4) or number of cells per row (5)
@@ -43,7 +53,7 @@ const App = () => {
 
   // Adjust actuators available for dragging based on dropdown selection
   const handleActuatorNumberChange = (number) => {
-    if (actuatorNumbers != 8) {
+    if (actuatorNumbers != 0) {
       alert("You already have selected a set number of actuators. Click reset to reset the entire system.");
     } else {
       setActuatorNumbers(number);
@@ -82,7 +92,7 @@ const App = () => {
   };
 
   const resetButtons = (e) => {
-    setActuatorNumbers(8);
+    setActuatorNumbers(0);
     setPlacedActuators([]);
     setGrid(Array.from({ length: 4}, () => Array(5).fill(null)));
   }
@@ -155,6 +165,26 @@ const App = () => {
     }
   };
 
+  const deflateActuators = async () => {
+    const deflateCommand = 100; // Assuming 100 is the command to deflate all actuators.
+    try {
+      await writeToCharacteristic('command', deflateCommand);
+      console.log('Sent deflate command to all actuators');
+    } catch (error) {
+      console.error('Error sending deflate command:', error);
+    }
+  };
+
+  const inflateAll = async () => {
+    const inflate = 11; // Assuming 11 is the command to inflate all actuators.
+    try {
+      await writeToCharacteristic('command', inflate);
+      console.log('Sent inflate command to all actuators');
+    } catch (error) {
+      console.error('Error sending deflate command:', error);
+    }
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault(); // This stops the default form submission behavior
 
@@ -213,8 +243,11 @@ const App = () => {
     <div  >
       <div>
         <h1 className="textStyle">A Knit Haptic Pneumatic Sleeve</h1>
-        <h4 className="textStyle2">This GUI system supports the PortFlow8 developed by Ian Scholler. The HaptiKnit must be connected to the Arduino system via Bluetooth. The main functionality of this GUI is to support the testing of multiple actuators. To test other pneumatic systems, simply readjust the UI to better match the system configuration of your device. </h4>
-        <div className="textStyle3"></div>
+        <h4 className="textStyle2">This GUI system supports the PortFlow8 developed by Ian Scholler. 
+        The HaptiKnit must be connected to the Arduino system via Bluetooth. 
+        The main functionality of this GUI is to support the testing of multiple actuators. 
+        To test other pneumatic systems, simply readjust the UI to better match the system configuration of your device. 
+        </h4>
       </div>
 
       {/* Connect Bluetooth */}
@@ -240,7 +273,7 @@ const App = () => {
       <h3 className='textStyle'>Select Number of Actuators: You have {actuatorNumbers} actuators selected. </h3>     
       {[1, 2, 3, 4, 5, 6, 7, 8].map(number => (
         <button key={number} className="dropdowntext" 
-        onClick={() => handleActuatorNumberChange(number)} //Maybe not necessary.
+        onClick={() => handleActuatorNumberChange(number)} // Maybe not necessary.
         >
           {number}
         </button>
@@ -248,9 +281,11 @@ const App = () => {
       <button className="dropdowntext" onClick={() => resetButtons()}> RESET </button>
       </div>
 
-
       {/* Show Grey Grid*/}
-      <h3 className="textStyle2">Drag and Drop Actuators into the Grid.</h3>
+      <h3 className="textStyle5">
+        <div>Drag and drop actuators into the grid.</div> This is purely for visual representation purposes. The buttons are clickable once dragged into the grid. Readjust by dragging.
+      </h3>
+
       <div className='basket'>
         {initialActuators
           .slice(0, actuatorNumbers) // Take only up to the number of actuators specified
@@ -267,7 +302,6 @@ const App = () => {
             </button>
           ))}
       </div>
-
       <div style={{ display: 'flex', gap: '20px' }}>
 
       <div className="gridGrey">
@@ -287,7 +321,7 @@ const App = () => {
                   className="actuatorsButton">
                   {cell.label}
                 </button>
-              ) : <p className="textStyle"> EMPTY </p>}
+              ) : <p className="textStyle"> </p>}
             </div>
           ))
         )}
@@ -295,26 +329,8 @@ const App = () => {
         </div> 
 
         {/* Set Pressure */}
-        {/* <div className="pressureCell">
-          <h2>Set Pressure:</h2>
-          <form onSubmit={handleSubmit}>
-            {Array.from({ length: actuatorNumbers }).map((_, index) => (
-              <div key={index}>
-                <label style={{display:'flex', gap: '20px', fontSize: '15px', padding: '5px'}}>
-                  Actuator{index + 1}:
-                  <input
-                    className="inputStyle"
-                    type="number"
-                    value={pressures[index]}
-                    onChange={(e) => handleChange(index, e.target.value)}
-                    placeholder="Pressure value (kPa)"
-                  />
-                  <button type="submit" className='buttonStyleFour' onSubmit={(e) => handleSubmit(e.target.value, pressures[index])}>Submit</button>    
-                </label>
-
-              </div>
-            ))}
-          </form>
+        {/* <div>
+          <h1> Pressure Value Testing: </h1>
         </div> */}
         <div className="pressureCell">
           <h2>Set Pressure:</h2>
@@ -333,9 +349,13 @@ const App = () => {
               </label>
             </div>
           ))}
-          <button type="submit">Submit</button>    
+          <button type="submit" className='buttonStyleFour'>Submit</button>    
         </form>
+        <button className='buttonStyleThree' onClick={deflateActuators}>STOP</button>    
+        {/* <button className='buttonStyleThree' onClick={inflateAll}>INFLATE ALL</button>     */}
+
         </div>
+
       </div>
       <img className='textStyle4' src={logo} alt="Logo" />
       <h4 className="textStyle4">Developed by Yannie Tan.</h4>
